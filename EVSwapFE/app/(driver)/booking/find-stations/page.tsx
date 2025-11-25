@@ -60,52 +60,17 @@ const fetcher = async (url: string) => {
   }))
 }
 
+const DEFAULT_LOCATION = {
+  lat: 10.8751312,
+  lng: 106.798143,
+}
+
 export default function FindStationsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [MapComponent, setMapComponent] = useState<any>(null)
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [locationError, setLocationError] = useState<string | null>(null)
-  const [isLoadingLocation, setIsLoadingLocation] = useState(true)
+  const [userLocation] = useState(DEFAULT_LOCATION)
   const [radiusKm, setRadiusKm] = useState(5)
   const [showFilterMenu, setShowFilterMenu] = useState(false)
-
-  // Láº¥y vá»‹ trÃ­ ngÆ°á»i dÃ¹ng
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          })
-          setIsLoadingLocation(false)
-          console.log("User location:", position.coords.latitude, position.coords.longitude)
-        },
-        (error) => {
-          console.error("Geolocation error:", error)
-          setLocationError("Could not get your location. Using default location (HCM City).")
-          // Fallback to HCM City
-          setUserLocation({
-            lat: 10.75819,
-            lng: 106.65405,
-          })
-          setIsLoadingLocation(false)
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        },
-      )
-    } else {
-      setLocationError("Geolocation is not supported by your browser")
-      setUserLocation({
-        lat: 10.75819,
-        lng: 106.65405,
-      })
-      setIsLoadingLocation(false)
-    }
-  }, [])
 
   // Load map component
   useEffect(() => {
@@ -121,9 +86,7 @@ export default function FindStationsPage() {
   }, [])
 
   // Build API URL
-  const apiUrl = userLocation
-    ? `${API_BASE_URL}/api/stations/nearby?lat=${userLocation.lat}&lng=${userLocation.lng}&radiusKm=${radiusKm}`
-    : null
+  const apiUrl = `${API_BASE_URL}/api/stations/nearby?lat=${userLocation.lat}&lng=${userLocation.lng}&radiusKm=${radiusKm}`
 
   // Fetch stations vá»›i authentication
   const {
@@ -160,56 +123,27 @@ export default function FindStationsPage() {
         station.address.toLowerCase().includes(searchQuery.toLowerCase()),
     )
 
-  const refreshLocation = () => {
-    setIsLoadingLocation(true)
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setUserLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        })
-        setLocationError(null)
-        setIsLoadingLocation(false)
-        mutate() // Refresh stations data
-      },
-      (error) => {
-        setLocationError(error.message)
-        setIsLoadingLocation(false)
-      },
-    )
-  }
-
   return (
     <>
       <BookingHeader title="Find Stations" />
 
       <div className="flex-1 overflow-auto">
-        <div className="flex gap-6 p-8">
+        <div className="flex gap-6 p-8 h-full">
           {/* Map Section - grows with content */}
-          <div className="w-1/2 flex-shrink-0">
-            <Card className="border-0 shadow-lg overflow-hidden" style={{ minHeight: "600px" }}>
-              {MapComponent ? <MapComponent /> : <div className="p-4 text-gray-500">Loading map...</div>}
+          <div className="flex-1 min-h-[700px]">
+            <Card className="border-0 shadow-lg overflow-hidden h-full p-0">
+              {MapComponent ? (
+                <div className="h-full">
+                  <MapComponent onForceCenter />
+                </div>
+              ) : (
+                <div className="p-4 text-gray-500">Loading map...</div>
+              )}
             </Card>
           </div>
 
           {/* Stations List */}
-          <div className="w-1/2 flex flex-col">
-            {/* Location Status */}
-            {locationError && (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm flex items-center justify-between">
-                <span>âš ï¸ {locationError}</span>
-                <Button variant="outline" size="sm" onClick={refreshLocation} className="ml-2 h-7 bg-transparent">
-                  Retry
-                </Button>
-              </div>
-            )}
-
-            {isLoadingLocation && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-blue-800 text-sm flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Getting your location...
-              </div>
-            )}
+          <div className="w-[420px] max-w-full flex flex-col shrink-0">
 
             <div className="mb-4">
               <div className="flex items-center gap-2 mb-3 relative">
@@ -254,9 +188,12 @@ export default function FindStationsPage() {
             </div>
 
             <div className="space-y-3 pb-4">
+              <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900 text-sm">
                 {isLoading ? "Loading stations..." : `Available Stations (${filteredStations.length})`}
               </h3>
+                <p className="text-xs text-gray-500">Using Student Cultural House as your location</p>
+              </div>
 
               {error && (
                 <div className="p-4 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
