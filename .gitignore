@@ -17,6 +17,8 @@ logs/
 .env.*
 !.env.example
 !.env.local.example
+EVSwapFE/.env
+EVSwapBE/.env
 
 # Frontend (Next.js / Node)
 node_modules/
