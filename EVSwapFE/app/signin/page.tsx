@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { API_BASE_URL } from "@/lib/config";
 
 export default function SignInPage() {
   const [loginId, setLoginId] = useState("");
@@ -15,8 +16,7 @@ export default function SignInPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
-
-  const API_BASE = useMemo(() => process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080", []);
+  const API_BASE = API_BASE_URL;
 
   const isFormValid = loginId.trim().length > 0 && password.trim().length > 0;
 

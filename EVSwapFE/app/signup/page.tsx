@@ -11,6 +11,7 @@ import { User, Mail, Lock, ArrowLeft, MapPin, ChevronDown } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useRouter } from "next/navigation"
 import { useGoogleLogin } from "@react-oauth/google"
+import { API_BASE_URL } from "@/lib/config"
 
 const VIETNAM_PROVINCES = [
   "Tuyên Quang",
@@ -120,7 +121,7 @@ export default function SignupPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:8080/api/auth/register", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -147,7 +148,7 @@ export default function SignupPage() {
 
   const loginWithGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
-      const res = await fetch("http://localhost:8080/api/auth/google", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: tokenResponse.access_token }),
