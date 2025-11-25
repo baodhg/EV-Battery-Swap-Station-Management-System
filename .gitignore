@@ -1,0 +1,60 @@
+# Root ignores
+.DS_Store
+Thumbs.db
+*.log
+logs/
+*.pid
+*.seed
+*.tgz
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Frontend (Next.js / Node)
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.turbo/
+dist/
+build/
+.next/
+out/
+.vercel/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Backend (Spring Boot / Maven)
+target/
+build/
+.mvn/wrapper/maven-wrapper.jar
+**/target/
+**/build/
+hs_err_pid*.log
+replay_pid*.log
+
+# Generated artifacts
+*.class
+*.jar
+*.war
+*.ear
+
+# Database dumps
+*.sql
+*.sqlite
+
+# OS-specific
+ehthumbs.db
+*.swp
+*.swo
+~$*
+
+
