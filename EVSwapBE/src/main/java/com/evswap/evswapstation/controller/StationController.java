@@ -1,19 +1,30 @@
 package com.evswap.evswapstation.controller;
 
+import com.evswap.evswapstation.dto.StationHealthDTO;
+import com.evswap.evswapstation.dto.StationStatusUpdateRequest;
 import com.evswap.evswapstation.entity.Station;
+import com.evswap.evswapstation.enums.StationStatus;
 import com.evswap.evswapstation.service.StationService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/stations")
@@ -35,6 +46,26 @@ public class StationController {
         return ResponseEntity.ok(stationService.getAll());
     }
 
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<Station>> getByStatus(@PathVariable StationStatus status) {
+        return ResponseEntity.ok(stationService.getByStatus(status));
+    }
+
+    @GetMapping("/health/overview")
+    public ResponseEntity<List<StationHealthDTO>> getStationHealthOverview() {
+        return ResponseEntity.ok(stationService.getStationHealthOverview());
+    }
+
+    @GetMapping("/{id}/health")
+    public ResponseEntity<StationHealthDTO> getStationHealth(@PathVariable Integer id) {
+        return ResponseEntity.ok(stationService.getStationHealth(id));
+    }
+
+    @GetMapping("/status/distribution")
+    public ResponseEntity<Map<StationStatus, Long>> getStatusDistribution() {
+        return ResponseEntity.ok(stationService.getStatusDistribution());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Station> getById(@PathVariable Integer id) {
         return stationService.getById(id)
@@ -50,6 +81,20 @@ public class StationController {
     @PutMapping("/{id}")
     public ResponseEntity<Station> update(@PathVariable Integer id, @RequestBody Station station) {
         return ResponseEntity.ok(stationService.update(id, station));
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<StationHealthDTO> updateStatus(
+            @PathVariable Integer id,
+            @Valid @RequestBody StationStatusUpdateRequest request
+    ) {
+        stationService.updateStatus(id, request.getStatus());
+        return ResponseEntity.ok(stationService.getStationHealth(id));
+    }
+
+    @PostMapping("/{id}/status/refresh")
+    public ResponseEntity<StationHealthDTO> refreshStatus(@PathVariable Integer id) {
+        return ResponseEntity.ok(stationService.refreshStationStatus(id));
     }
 
     @DeleteMapping("/{id}")
