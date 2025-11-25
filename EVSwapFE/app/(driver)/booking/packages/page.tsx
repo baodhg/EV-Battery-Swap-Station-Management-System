@@ -190,17 +190,17 @@ export default function PackagesPage() {
     <>
       <BookingHeader title="Service Packages" />
 
-      <div className="flex-1 overflow-auto p-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
+      <div className="flex-1 overflow-auto">
+        <div className="p-8 space-y-6">
+          <div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">Purchase Your Package</h3>
             <p className="text-gray-600">Buy a package now and use it later for battery swaps</p>
           </div>
 
           {/* Error Message */}
           {errorMessage && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-red-800">{errorMessage}</p>
               </div>
@@ -208,16 +208,25 @@ export default function PackagesPage() {
           )}
 
           {packagesLoading ? (
-            <div className="flex items-center justify-center py-16">
+            <Card className="p-10 flex items-center justify-center shadow border border-gray-100">
               <div className="text-center">
                 <div className="w-16 h-16 border-4 border-[#7241CE] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-gray-600">Loading packages...</p>
               </div>
-            </div>
+            </Card>
           ) : packages.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-gray-600">No packages available at the moment.</p>
-            </div>
+            <Card className="p-12 text-center shadow border border-dashed border-gray-300">
+              <div className="space-y-3">
+                <Sparkles className="w-8 h-8 text-[#7241CE] mx-auto" />
+                <div>
+                  <p className="text-lg font-semibold text-gray-800">No packages available</p>
+                  <p className="text-sm text-gray-500">Please check back soon for new offers.</p>
+                </div>
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                  Refresh
+                </Button>
+              </div>
+            </Card>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {packages.map((pkg) => {
@@ -258,21 +267,21 @@ export default function PackagesPage() {
                     <div className="pt-4 border-t border-gray-200">
                       <ul className="space-y-2 mb-4">
                         <li className="flex items-start gap-2 text-sm text-gray-700">
-                          <Check className="w-4 h-4 text-[#A2F200] mt-0.5 flex-shrink-0" />
+                          <Check className="w-4 h-4 text-[#A2F200] mt-0.5 shrink-0" />
                           <span>Quick battery swap service</span>
                         </li>
                         <li className="flex items-start gap-2 text-sm text-gray-700">
-                          <Check className="w-4 h-4 text-[#A2F200] mt-0.5 flex-shrink-0" />
+                          <Check className="w-4 h-4 text-[#A2F200] mt-0.5 shrink-0" />
                           <span>All stations available</span>
                         </li>
                         {isMonthlyPlan && (
                           <>
                             <li className="flex items-start gap-2 text-sm text-gray-700">
-                              <Check className="w-4 h-4 text-[#A2F200] mt-0.5 flex-shrink-0" />
+                              <Check className="w-4 h-4 text-[#A2F200] mt-0.5 shrink-0" />
                               <span>Unlimited swaps</span>
                             </li>
                             <li className="flex items-start gap-2 text-sm text-gray-700">
-                              <Sparkles className="w-4 h-4 text-[#A2F200] mt-0.5 flex-shrink-0" />
+                              <Sparkles className="w-4 h-4 text-[#A2F200] mt-0.5 shrink-0" />
                               <span className="font-semibold text-[#7241CE]">Priority service</span>
                             </li>
                           </>

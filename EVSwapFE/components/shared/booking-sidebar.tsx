@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Menu, Home, User, History, Zap, LifeBuoy, MapPin } from "lucide-react"
+import { Menu, Home, User, History, Zap, LifeBuoy, MapPin, Package, Car, ClipboardList } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 
 export function BookingSidebar() {
@@ -26,41 +26,57 @@ export function BookingSidebar() {
       </div>
 
       <nav className="flex-1 p-4 space-y-2">
+        {[
+          {
+            icon: <MapPin className="w-5 h-5" />,
+            label: "Find Stations",
+            path: "/booking/find-stations",
+          },
+          {
+            icon: <Zap className="w-5 h-5" />,
+            label: "Swap",
+            path: "/booking/swap",
+          },
+          {
+            icon: <History className="w-5 h-5" />,
+            label: "History",
+            path: "/booking/history",
+          },
+          {
+            icon: <Package className="w-5 h-5" />,
+            label: "Packages",
+            path: "/booking/packages",
+          },
+          {
+            icon: <Car className="w-5 h-5" />,
+            label: "Vehicles",
+            path: "/booking/vehicles",
+          },
+          {
+            icon: <ClipboardList className="w-5 h-5" />,
+            label: "Reports",
+            path: "/booking/report",
+          },
+          {
+            icon: <User className="w-5 h-5" />,
+            label: "Profile",
+            path: "/booking/profile",
+          },
+          {
+            icon: <LifeBuoy className="w-5 h-5" />,
+            label: "Support",
+            path: "/booking/support",
+          },
+        ].map((item) => (
         <NavItem
-          icon={<MapPin className="w-5 h-5" />}
-          label="Find Stations"
-          active={isActive("/booking/find-stations")}
+            key={item.path}
+            icon={item.icon}
+            label={item.label}
+            active={isActive(item.path)}
           sidebarOpen={sidebarOpen}
-          onClick={() => router.push("/booking/find-stations")}
+            onClick={() => router.push(item.path)}
         />
-        <NavItem
-          icon={<Zap className="w-5 h-5" />}
-          label="Swap"
-          active={isActive("/booking/swap")}
-          sidebarOpen={sidebarOpen}
-          onClick={() => router.push("/booking/swap")}
-        />
-        <NavItem
-          icon={<History className="w-5 h-5" />}
-          label="History"
-          active={isActive("/booking/history")}
-          sidebarOpen={sidebarOpen}
-          onClick={() => router.push("/booking/history")}
-        />
-        <NavItem
-          icon={<User className="w-5 h-5" />}
-          label="Profile"
-          active={isActive("/booking/profile")}
-          sidebarOpen={sidebarOpen}
-          onClick={() => router.push("/booking/profile")}
-        />
-        <NavItem
-          icon={<LifeBuoy className="w-5 h-5" />}
-          label="Support"
-          active={isActive("/booking/support")}
-          sidebarOpen={sidebarOpen}
-          onClick={() => router.push("/booking/support")}
-        />
+        ))}
       </nav>
 
       {sidebarOpen && (

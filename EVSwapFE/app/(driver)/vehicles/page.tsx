@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { BookingHeader } from "@/components/shared/booking-header"
 import { useAuth } from "@/hooks/use-auth"
 import apiClient from "@/lib/api" // âœ… import Ä‘Ãºng
 
@@ -74,99 +75,114 @@ export default function VehiclePage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Quáº£n lÃ½ xe Ä‘iá»‡n</h1>
-        <Button onClick={() => setAdding(true)}>+ ThÃªm xe</Button>
-      </div>
+    <>
+      <BookingHeader title="Quản lý xe điện" />
 
-      {(adding || editing) && (
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-3 bg-white p-4 rounded-xl shadow border border-gray-200"
-        >
-          <Input
-            name="vin"
-            placeholder="VIN"
-            value={form.vin}
-            onChange={(e) => setForm({ ...form, vin: e.target.value })}
-            required
-          />
-          <Input
-            name="vehicleModel"
-            placeholder="Model xe"
-            value={form.vehicleModel}
-            onChange={(e) => setForm({ ...form, vehicleModel: e.target.value })}
-            required
-          />
-          <Input
-            name="batteryType"
-            placeholder="Loáº¡i pin"
-            value={form.batteryType}
-            onChange={(e) => setForm({ ...form, batteryType: e.target.value })}
-            required
-          />
-          <Input
-            name="userName"
-            placeholder="TÃªn ngÆ°á»i dÃ¹ng"
-            value={form.userName}
-            onChange={(e) => setForm({ ...form, userName: e.target.value })}
-          />
-          <Input
-            type="number"
-            name="userId"
-            placeholder="ID ngÆ°á»i dÃ¹ng"
-            value={form.userId ?? ""}
-            onChange={(e) => setForm({ ...form, userId: Number(e.target.value) })}
-          />
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setAdding(false)
-                setEditing(null)
-              }}
-            >
-              Há»§y
-            </Button>
-            <Button type="submit">LÆ°u</Button>
+      <div className="flex-1 overflow-auto">
+        <div className="p-8 space-y-6">
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-gray-500">
+              Theo dõi danh sách phương tiện và cập nhật thông tin xe của bạn.
+            </p>
+            <Button onClick={() => setAdding(true)}>+ Thêm xe</Button>
           </div>
-        </form>
-      )}
 
-      {/* Danh sÃ¡ch xe */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-        {vehicles.map((v) => (
-          <Card key={v.id} className="p-4">
-            <CardContent>
-              <p><b>VIN:</b> {v.vin}</p>
-              <p><b>Model:</b> {v.vehicleModel}</p>
-              <p><b>Battery:</b> {v.batteryType}</p>
-              <p><b>User:</b> {v.userName} (ID: {v.userId})</p>
-              <div className="flex gap-2 mt-3">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setEditing(v)
-                    setForm(v)
-                    setAdding(false)
-                  }}
-                >
-                  Sá»­a
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => handleDelete(v.id!)}
-                >
-                  XÃ³a
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+          {(adding || editing) && (
+            <Card className="border border-gray-200 shadow">
+              <form onSubmit={handleSubmit} className="space-y-3 p-6">
+                <Input
+                  name="vin"
+                  placeholder="VIN"
+                  value={form.vin}
+                  onChange={(e) => setForm({ ...form, vin: e.target.value })}
+                  required
+                />
+                <Input
+                  name="vehicleModel"
+                  placeholder="Model xe"
+                  value={form.vehicleModel}
+                  onChange={(e) => setForm({ ...form, vehicleModel: e.target.value })}
+                  required
+                />
+                <Input
+                  name="batteryType"
+                  placeholder="Loại pin"
+                  value={form.batteryType}
+                  onChange={(e) => setForm({ ...form, batteryType: e.target.value })}
+                  required
+                />
+                <Input
+                  name="userName"
+                  placeholder="Tên người dùng"
+                  value={form.userName}
+                  onChange={(e) => setForm({ ...form, userName: e.target.value })}
+                />
+                <Input
+                  type="number"
+                  name="userId"
+                  placeholder="ID người dùng"
+                  value={form.userId ?? ""}
+                  onChange={(e) => setForm({ ...form, userId: Number(e.target.value) })}
+                />
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setAdding(false)
+                      setEditing(null)
+                    }}
+                  >
+                    Hủy
+                  </Button>
+                  <Button type="submit">Lưu</Button>
+                </div>
+              </form>
+            </Card>
+          )}
+
+          {/* Danh sách xe */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {vehicles.map((v) => (
+              <Card key={v.id} className="p-4 shadow border border-gray-100">
+                <CardContent className="space-y-1 text-sm text-gray-700">
+                  <p>
+                    <b>VIN:</b> {v.vin}
+                  </p>
+                  <p>
+                    <b>Model:</b> {v.vehicleModel}
+                  </p>
+                  <p>
+                    <b>Battery:</b> {v.batteryType}
+                  </p>
+                  <p>
+                    <b>User:</b> {v.userName} (ID: {v.userId})
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setEditing(v)
+                        setForm(v)
+                        setAdding(false)
+                      }}
+                    >
+                      Sửa
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDelete(v.id!)}
+                    >
+                      Xóa
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
