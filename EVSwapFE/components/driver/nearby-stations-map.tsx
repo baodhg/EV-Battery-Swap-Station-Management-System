@@ -15,12 +15,24 @@ import { API_BASE_URL } from "@/lib/config";
 import { Navigation, Zap } from "lucide-react";
 
 type Station = {
-  stationID: string | number;
-  stationName: string;
+  id: string | number;
+  name: string;
   latitude: number;
   longitude: number;
   address: string;
   distanceKm?: number;
+};
+
+const normalizeStation = (item: any): Station => {
+  const distanceValue = typeof item.distanceKm === "number" ? item.distanceKm : undefined;
+  return {
+    id: item.stationID?.toString() || Math.random().toString(),
+    name: item.stationName || "Unknown Station",
+    address: item.address || "No address",
+    latitude: Number(item.latitude) || 0,
+    longitude: Number(item.longitude) || 0,
+    distanceKm: distanceValue,
+  };
 };
 
 type Coordinates = {
@@ -35,9 +47,10 @@ const STUDENT_CULTURAL_HOUSE: Coordinates = {
 
 type NearbyStationsMapProps = {
   onForceCenter?: boolean;
+  stations?: Station[];
 };
 
-export default function NearbyStationsMap({ onForceCenter }: NearbyStationsMapProps) {
+export default function NearbyStationsMap({ onForceCenter, stations: externalStations }: NearbyStationsMapProps) {
   const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   const [mounted, setMounted] = useState(false);
   const [userPosition] = useState<Coordinates>(STUDENT_CULTURAL_HOUSE);
@@ -45,11 +58,12 @@ export default function NearbyStationsMap({ onForceCenter }: NearbyStationsMapPr
     latitude: STUDENT_CULTURAL_HOUSE.latitude,
     longitude: STUDENT_CULTURAL_HOUSE.longitude,
     zoom: 13,
-    bearing: 0,
-    pitch: 0,
+    bearing: -20,
+    pitch: 45,
     padding: { top: 0, bottom: 0, left: 0, right: 0 },
   });
-  const [stations, setStations] = useState<Station[]>([]);
+  const [internalStations, setInternalStations] = useState<Station[]>([]);
+  const stations = externalStations ?? internalStations;
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [routeFeature, setRouteFeature] = useState<Feature<LineString> | null>(
     null
@@ -63,12 +77,14 @@ export default function NearbyStationsMap({ onForceCenter }: NearbyStationsMapPr
         latitude: STUDENT_CULTURAL_HOUSE.latitude,
         longitude: STUDENT_CULTURAL_HOUSE.longitude,
         zoom: 15,
+        bearing: prev.bearing ?? -20,
+        pitch: prev.pitch ?? 45,
       }));
     }
   }, [onForceCenter]);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || externalStations) return;
 
     const controller = new AbortController();
     const fetchStations = async () => {
@@ -82,8 +98,11 @@ export default function NearbyStationsMap({ onForceCenter }: NearbyStationsMapPr
           throw new Error(`Failed to load stations (${res.status})`);
         }
 
-        const data = (await res.json()) as Station[];
-        setStations(data);
+        const data = await res.json();
+        const normalized = (Array.isArray(data) ? data : [])
+          .map((item) => normalizeStation(item))
+          .filter((station) => station.name && station.address && station.latitude && station.longitude);
+        setInternalStations(normalized);
       } catch (err) {
         if (!controller.signal.aborted) {
           console.warn("Error fetching stations:", err);
@@ -96,7 +115,13 @@ export default function NearbyStationsMap({ onForceCenter }: NearbyStationsMapPr
     return () => {
       controller.abort();
     };
-  }, [mounted, userPosition]);
+  }, [externalStations, mounted, userPosition]);
+
+  useEffect(() => {
+    if (selectedStation && !stations.some((s) => s.id === selectedStation.id)) {
+      setSelectedStation(null);
+    }
+  }, [stations, selectedStation]);
 
   const buildLineFeature = useMemo(() => {
     return (
@@ -245,17 +270,17 @@ export default function NearbyStationsMap({ onForceCenter }: NearbyStationsMapPr
           </Marker>
 
           {stations.map((station) => {
-            const isSelected = selectedStation?.stationID === station.stationID;
+            const isSelected = selectedStation?.id === station.id;
             return (
               <Marker
-                key={station.stationID}
+                key={station.id}
                 latitude={station.latitude}
                 longitude={station.longitude}
                 anchor="bottom"
               >
                 <button
                   type="button"
-                  aria-label={`Select ${station.stationName}`}
+                  aria-label={`Select ${station.name}`}
                   onClick={(event) => {
                     event.stopPropagation();
                     setSelectedStation(station);
@@ -306,7 +331,7 @@ export default function NearbyStationsMap({ onForceCenter }: NearbyStationsMapPr
             >
               <div className="space-y-2 text-sm">
                 <p className="font-semibold text-slate-900">
-                  {selectedStation.stationName}
+                  {selectedStation.name}
                 </p>
                 <p className="text-slate-600">{selectedStation.address}</p>
                 {typeof selectedStation.distanceKm === "number" && (
