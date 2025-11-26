@@ -8,6 +8,7 @@ import com.evswap.evswapstation.repository.UserPackagePlansRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -27,6 +28,7 @@ public class UserPackageController {
     private final PackagePlanRepository packageRepository;
 
     @PostMapping("/create")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<?> createUserPackage(@RequestBody UserPackageRequest request) {
         try {
             log.info("Creating user package for userId: {}, packageId: {}",
@@ -68,6 +70,7 @@ public class UserPackageController {
     }
 
     @GetMapping("/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<?> getUserPackages(@PathVariable Integer userId) {
         try {
             log.info("Fetching packages for userId: {}", userId);

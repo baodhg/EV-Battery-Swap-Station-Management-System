@@ -5,6 +5,7 @@ import com.evswap.evswapstation.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -21,6 +22,7 @@ public class TransactionController {
      * Lấy tất cả giao dịch với thông tin: Transaction ID, Date & Time, Customer, VIN, Amount, Payment
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<TransactionDTO>> getAllTransactions() {
         List<TransactionDTO> transactions = transactionService.getAllTransactions();
         return ResponseEntity.ok(transactions);
@@ -31,6 +33,7 @@ public class TransactionController {
      * Lấy chi tiết một giao dịch theo ID
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<TransactionDTO> getTransactionById(@PathVariable Long id) {
         TransactionDTO transaction = transactionService.getTransactionById(id);
         if (transaction != null) {
@@ -44,6 +47,7 @@ public class TransactionController {
      * Lấy giao dịch theo trạng thái (PENDING, COMPLETED, FAILED, CANCELLED)
      */
     @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<TransactionDTO>> getTransactionsByStatus(@PathVariable String status) {
         List<TransactionDTO> transactions = transactionService.getTransactionsByStatus(status);
         return ResponseEntity.ok(transactions);
@@ -54,6 +58,7 @@ public class TransactionController {
      * Lấy tất cả giao dịch của một khách hàng
      */
     @GetMapping("/user/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<List<TransactionDTO>> getTransactionsByUserId(@PathVariable Long userId) {
         List<TransactionDTO> transactions = transactionService.getTransactionsByUserId(userId);
         return ResponseEntity.ok(transactions);
@@ -73,6 +78,7 @@ public class TransactionController {
      * }
      */
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<?> createTransaction(@RequestBody TransactionDTO transactionDTO) {
         try {
             TransactionDTO createdTransaction = transactionService.createTransaction(transactionDTO);
@@ -100,6 +106,7 @@ public class TransactionController {
      * }
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<?> updateTransaction(
             @PathVariable Long id,
             @RequestBody TransactionDTO transactionDTO) {
@@ -124,6 +131,7 @@ public class TransactionController {
      * Xóa giao dịch theo ID
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<?> deleteTransaction(@PathVariable Long id) {
         try {
             boolean deleted = transactionService.deleteTransaction(id);
@@ -144,6 +152,7 @@ public class TransactionController {
      * Body example: { "status": "COMPLETED" }
      */
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<?> updateTransactionStatus(
             @PathVariable Long id,
             @RequestBody TransactionDTO statusUpdate) {
@@ -168,6 +177,7 @@ public class TransactionController {
     }
 
     @GetMapping("/battery-info")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<TransactionBatteryDTO>> getTransactionBatteryInfo() {
         try {
             List<TransactionBatteryDTO> result = transactionService.getAllTransactionBatteryInfo();
@@ -192,6 +202,7 @@ public class TransactionController {
      * }
      */
     @GetMapping("/dashboard/stats")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<DashboardStatsDTO> getDashboardStats() {
         try {
             DashboardStatsDTO stats = transactionService.getDashboardStats();
@@ -212,6 +223,7 @@ public class TransactionController {
      * ]
      */
     @GetMapping("/dashboard/by-day")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<TransactionByDayDTO>> getTransactionsByDay() {
         try {
             List<TransactionByDayDTO> data = transactionService.getTransactionsByDay();
@@ -232,6 +244,7 @@ public class TransactionController {
      * ]
      */
     @GetMapping("/dashboard/revenue-by-day")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<RevenueByDayDTO>> getRevenueByDay() {
         try {
             List<RevenueByDayDTO> data = transactionService.getRevenueByDay();
@@ -253,6 +266,7 @@ public class TransactionController {
      * }
      */
     @GetMapping("/dashboard/battery-status")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<BatteryStatusDTO> getBatteryStatus() {
         try {
             BatteryStatusDTO status = transactionService.getBatteryStatusDistribution();
@@ -282,6 +296,7 @@ public class TransactionController {
      * }
      */
     @GetMapping("/dashboard/weekly-comparison")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<WeeklyComparisonDTO> getWeeklyComparison() {
         try {
             WeeklyComparisonDTO comparison = transactionService.getWeeklyComparison();
@@ -303,6 +318,7 @@ public class TransactionController {
      * }
      */
     @GetMapping("/dashboard/summary")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<DashboardSummaryDTO> getDashboardSummary() {
         try {
             DashboardSummaryDTO summary = transactionService.getDashboardSummary();
@@ -318,6 +334,7 @@ public class TransactionController {
      * Lấy dữ liệu giao dịch theo giờ trong tuần
      */
     @GetMapping("/dashboard/peak-hours")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<PeakHoursDTO>> getPeakHours() {
         try {
             List<PeakHoursDTO> data = transactionService.getPeakHoursData();
@@ -332,6 +349,7 @@ public class TransactionController {
      * Lấy top 5 performing stations
      */
     @GetMapping("/dashboard/top-stations")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<StationPerformanceDTO>> getTopStations() {
         try {
             List<StationPerformanceDTO> data = transactionService.getTopPerformingStations();
@@ -346,6 +364,7 @@ public class TransactionController {
      * Lấy user growth trend (7 tháng)
      */
     @GetMapping("/dashboard/user-growth")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<UserGrowthDTO> getUserGrowth() {
         try {
             UserGrowthDTO data = transactionService.getUserGrowthTrend();
@@ -360,6 +379,7 @@ public class TransactionController {
      * Lấy phân phối package plans
      */
     @GetMapping("/dashboard/subscription-distribution")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<SubscriptionDistributionDTO> getSubscriptionDistribution() {
         try {
             SubscriptionDistributionDTO data = transactionService.getSubscriptionDistribution();

@@ -5,7 +5,8 @@ import useSWR from "swr"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { MapPin, Clock, Filter, Zap, Loader2 } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { MapPin, Clock, Filter, Zap, Loader2, Navigation, Info } from "lucide-react"
 import { BookingHeader } from "@/components/shared/booking-header"
 import { API_BASE_URL } from "@/lib/config"
 
@@ -20,9 +21,37 @@ interface Station {
   distanceKm: number
   latitude: number
   longitude: number
+  contact?: string
   price: number
   rating: number
   status: "open" | "maintenance" | "closed"
+}
+
+type StationInventoryItem = {
+  inventoryId: number
+  inventoryStatus: string | null
+  batteryId: number | string | null
+  batteryName?: string | null
+  batteryStatus?: string | null
+  batteryType?: string | null
+  capacity?: number | null
+  model?: string | null
+  usageCount?: number | null
+  borrowStatus?: string | null
+}
+
+type StationInventoryResponse = {
+  stationId: number
+  stationName: string
+  stationStatus: string | null
+  totalSlots: number
+  totalInventories: number
+  statusCounters: Record<string, number>
+  page: number
+  size: number
+  totalItems: number
+  totalPages: number
+  items: StationInventoryItem[]
 }
 
 // Fetcher vá»›i authentication token
@@ -71,6 +100,7 @@ const fetcher = async (url: string) => {
         distanceKm: distanceValue,
         latitude: Number(item.latitude) || 0,
         longitude: Number(item.longitude) || 0,
+        contact: item.contact || item.phoneNumber || item.hotline,
         price: item.pricePerSwap || 5,
         rating: item.rating || 4.5,
         status: (item.status?.toLowerCase() || "open") as "open" | "maintenance" | "closed",
@@ -89,6 +119,23 @@ const fetcher = async (url: string) => {
   )
 }
 
+const authorizedJsonFetcher = async (url: string) => {
+  const token = localStorage.getItem("token")
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  })
+
+  if (!res.ok) {
+    throw new Error(`API Error: ${res.status} - ${res.statusText}`)
+  }
+
+  return res.json()
+}
+
 const DEFAULT_LOCATION = {
   lat: 10.8751312,
   lng: 106.798143,
@@ -100,6 +147,29 @@ export default function FindStationsPage() {
   const [userLocation] = useState(DEFAULT_LOCATION)
   const [radiusKm, setRadiusKm] = useState(5)
   const [showFilterMenu, setShowFilterMenu] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailStation, setDetailStation] = useState<Station | null>(null)
+  const [focusedStationId, setFocusedStationId] = useState<string | number | null>(null)
+  const [inventoryPageIndex, setInventoryPageIndex] = useState(0)
+  const inventoryPageSize = 12
+  const [inventoryStatusFilter, setInventoryStatusFilter] = useState<string[]>([])
+  const [selectedInventory, setSelectedInventory] = useState<StationInventoryItem | null>(null)
+
+  const formatStatusLabel = (value?: string | null) => {
+    if (!value) return "Unknown"
+    return value
+      .toLowerCase()
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  }
+
+  const getInventoryStatusColor = (value?: string | null) => {
+    const normalized = value?.toLowerCase() ?? "unknown"
+    if (["available", "active", "new", "ready"].includes(normalized)) return "text-emerald-600"
+    if (["maintenance", "retired", "pending"].includes(normalized)) return "text-amber-500"
+    if (["damaged", "fault", "error"].includes(normalized)) return "text-rose-500"
+    return "text-slate-500"
+  }
 
   // Load map component
   useEffect(() => {
@@ -154,6 +224,56 @@ export default function FindStationsPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [showFilterMenu])
 
+  const inventoryApiUrl = useMemo(() => {
+    if (!detailStation) return null
+    const params = new URLSearchParams({
+      page: String(inventoryPageIndex),
+      size: String(inventoryPageSize),
+    })
+    inventoryStatusFilter.forEach((status) => params.append("status", status))
+    return `${API_BASE_URL}/api/stations/${detailStation.id}/inventory?${params.toString()}`
+  }, [detailStation, inventoryPageIndex, inventoryPageSize, inventoryStatusFilter])
+
+  const {
+    data: stationInventory,
+    isLoading: inventoryLoading,
+    error: inventoryError,
+  } = useSWR<StationInventoryResponse>(inventoryApiUrl, authorizedJsonFetcher, {
+    keepPreviousData: true,
+    revalidateOnFocus: false,
+  })
+
+  useEffect(() => {
+    if (!detailStation) {
+      setInventoryPageIndex(0)
+      setInventoryStatusFilter([])
+      setSelectedInventory(null)
+      return
+    }
+    setInventoryPageIndex(0)
+    setSelectedInventory(null)
+  }, [detailStation])
+
+  useEffect(() => {
+    if (!stationInventory?.items?.length) {
+      setSelectedInventory(null)
+      return
+    }
+
+    setSelectedInventory((prev) => {
+      if (!prev) {
+        return stationInventory.items[0]
+      }
+      const stillExists = stationInventory.items.find((item) => item.inventoryId === prev.inventoryId)
+      return stillExists ?? stationInventory.items[0]
+    })
+  }, [stationInventory])
+
+  const handleViewDetails = (station: Station) => {
+    setDetailStation(station)
+    setDetailOpen(true)
+  }
+
   return (
     <div className="flex flex-col h-full">
       <BookingHeader title="Find Stations" />
@@ -165,7 +285,12 @@ export default function FindStationsPage() {
             <Card className="border-0 shadow-lg overflow-hidden h-full min-h-[700px] p-0">
               {MapComponent ? (
                 <div className="h-full">
-                  <MapComponent onForceCenter stations={stations} />
+                  <MapComponent
+                    onForceCenter
+                    stations={stations}
+                    selectedStationId={focusedStationId ?? undefined}
+                    onStationSelect={(station: Station | null) => setFocusedStationId(station?.id ?? null)}
+                  />
                 </div>
               ) : (
                 <div className="p-4 text-gray-500">Loading map...</div>
@@ -285,7 +410,18 @@ export default function FindStationsPage() {
                       </div>
                     </div>
 
-                    <div className="flex justify-end">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="gap-1 text-xs"
+                          onClick={() => handleViewDetails(station)}
+                        >
+                          <Info className="w-3 h-3" />
+                          View Details
+                        </Button>
+                      </div>
                       <Button
                         className="bg-[#A2F200] text-black hover:bg-[#8fd600] h-7 px-4 text-xs"
                         onClick={() => {
@@ -304,6 +440,218 @@ export default function FindStationsPage() {
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={detailOpen}
+        onOpenChange={(open) => {
+          setDetailOpen(open)
+          if (!open) {
+            setDetailStation(null)
+            setSelectedInventory(null)
+            setInventoryStatusFilter([])
+            setInventoryPageIndex(0)
+          }
+        }}
+      >
+        <DialogContent className="max-w-7xl">
+          <DialogHeader>
+            <DialogTitle>{detailStation?.name ?? "Station details"}</DialogTitle>
+            <DialogDescription>
+              {detailStation
+                ? stationInventory
+                  ? `${stationInventory.totalInventories} inventory slots • ${detailStation.address}`
+                  : `Loading inventory • ${detailStation.address}`
+                : "Select a station to see more information."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {detailStation && (
+            <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 uppercase tracking-wide">
+                  <span>Station inventory layout</span>
+                  <span>{stationInventory?.totalItems ?? detailStation.total ?? 0} tracked slots</span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={inventoryStatusFilter.length === 0 ? "default" : "outline"}
+                    onClick={() => {
+                      setInventoryStatusFilter([])
+                      setInventoryPageIndex(0)
+                    }}
+                  >
+                    All ({stationInventory?.totalItems ?? 0})
+                  </Button>
+                  {Object.entries(stationInventory?.statusCounters ?? {}).map(([statusKey, count]) => {
+                    const normalized = statusKey?.toUpperCase?.() ?? "UNKNOWN"
+                    const isActive = inventoryStatusFilter.includes(normalized)
+                    return (
+                      <Button
+                        key={normalized}
+                        size="sm"
+                        variant={isActive ? "default" : "outline"}
+                        className={isActive ? "bg-[#A2F200] text-black hover:bg-[#8fd600]" : undefined}
+                        onClick={() => {
+                          setInventoryStatusFilter((prev) => {
+                            if (prev.includes(normalized)) {
+                              return prev.filter((item) => item !== normalized)
+                            }
+                            return [...prev, normalized]
+                          })
+                          setInventoryPageIndex(0)
+                        }}
+                      >
+                        {normalized.replace(/_/g, " ")} ({count})
+                      </Button>
+                    )
+                  })}
+                </div>
+
+                <div className="min-h-[320px]">
+                  {inventoryError && (
+                    <div className="p-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
+                      Failed to load inventory: {inventoryError.message}
+                    </div>
+                  )}
+
+                  {inventoryLoading && (
+                    <div className="flex items-center justify-center gap-2 text-gray-500 p-6">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Loading inventory...
+                    </div>
+                  )}
+
+                  {!inventoryLoading && !inventoryError && stationInventory?.items?.length === 0 && (
+                    <div className="p-4 text-sm text-gray-500 border rounded-lg">
+                      No inventory slots match the current filter.
+                    </div>
+                  )}
+
+                  {stationInventory?.items?.length ? (
+                    <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+                      {stationInventory.items.map((item) => {
+                        const isSelected = selectedInventory?.inventoryId === item.inventoryId
+                        const normalizedStatus = item.inventoryStatus ?? "UNKNOWN"
+                        return (
+                          <button
+                            key={item.inventoryId}
+                            onClick={() => setSelectedInventory(item)}
+                            className={`rounded-lg border p-3 text-left transition focus-visible:outline focus-visible:ring-2 flex flex-col gap-1 ${
+                              isSelected ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white"
+                            }`}
+                          >
+                            <p className="text-xs font-semibold text-gray-700">Slot #{item.inventoryId}</p>
+                            <p className={`text-[11px] uppercase font-semibold ${getInventoryStatusColor(normalizedStatus)}`}>
+                              {formatStatusLabel(normalizedStatus)}
+                            </p>
+                            <div className="mt-1 text-[11px] text-gray-500 space-y-1">
+                              <p>{item.batteryName ?? `Battery ${item.batteryId ?? "-"}`}</p>
+                              <p>{item.batteryStatus ?? "Unknown state"}</p>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+
+                {stationInventory && stationInventory.totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-2 text-sm">
+                    <span className="text-gray-500">
+                      Page {stationInventory.page + 1} of {stationInventory.totalPages}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={stationInventory.page === 0}
+                        onClick={() => setInventoryPageIndex((prev) => Math.max(prev - 1, 0))}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={stationInventory.page >= stationInventory.totalPages - 1}
+                        onClick={() =>
+                          setInventoryPageIndex((prev) =>
+                            stationInventory.page >= stationInventory.totalPages - 1 ? prev : prev + 1,
+                          )
+                        }
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border bg-muted/40 p-4 space-y-4">
+                <div>
+                  <p className="text-xs text-gray-500">Slot details</p>
+                  <h4 className="text-lg font-semibold">
+                    {selectedInventory ? `Slot #${selectedInventory.inventoryId}` : "Select any slot"}
+                  </h4>
+                  <p className="text-xs text-gray-500">
+                    {selectedInventory
+                      ? selectedInventory.inventoryStatus?.toUpperCase() === "AVAILABLE"
+                        ? "Available for swap now"
+                        : `Status: ${formatStatusLabel(selectedInventory.inventoryStatus)}`
+                      : "Tap any slot on the layout to view its status"}
+                  </p>
+                </div>
+
+                {selectedInventory ? (
+                  <dl className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Battery ID</dt>
+                      <dd className="font-semibold">{selectedInventory.batteryId ?? "N/A"}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Battery name</dt>
+                      <dd className="font-semibold">
+                        {selectedInventory.batteryName ?? `Battery ${selectedInventory.batteryId ?? "-"}`}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Battery type</dt>
+                      <dd className="font-semibold">{selectedInventory.batteryType ?? "—"}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Battery status</dt>
+                      <dd className="font-semibold">{formatStatusLabel(selectedInventory.batteryStatus)}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Capacity</dt>
+                      <dd className="font-semibold">
+                        {selectedInventory.capacity != null ? `${selectedInventory.capacity} Ah` : "—"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Usage count</dt>
+                      <dd className="font-semibold">{selectedInventory.usageCount ?? "—"}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Borrow status</dt>
+                      <dd className="font-semibold">{selectedInventory.borrowStatus ?? "—"}</dd>
+                    </div>
+                  </dl>
+                ) : (
+                  <div className="text-sm text-gray-500 border border-dashed rounded-lg p-4">
+                    Select a slot on the left to load battery telemetry and logistics details.
+                  </div>
+                )}
+
+                <div className="rounded-lg border bg-white/70 p-3 text-xs text-gray-500">
+                  <p>Contact the station manager at {detailStation.contact ?? "0123-456-789"} if you need assistance.</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

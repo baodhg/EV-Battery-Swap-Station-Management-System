@@ -1,6 +1,13 @@
 package com.evswap.evswapstation.service;
 
 import com.evswap.evswapstation.dto.InventoryStatusCountDTO;
+import com.evswap.evswapstation.dto.StationInventoryItemDTO;
+import com.evswap.evswapstation.dto.StationInventoryPageDTO;
+import com.evswap.evswapstation.entity.Inventory;
+import com.evswap.evswapstation.entity.Station;
+import com.evswap.evswapstation.repository.InventoryRepository;
+import com.evswap.evswapstation.repository.StationRepository;
+import jakarta.persistence.EntityNotFoundException;
 import com.evswap.evswapstation.dto.StationHealthDTO;
 import com.evswap.evswapstation.entity.Station;
 import com.evswap.evswapstation.enums.StationStatus;
@@ -15,7 +22,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -123,6 +135,58 @@ public class StationService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public StationInventoryPageDTO getStationInventoryPage(Integer stationId, List<String> statuses, int page, int size) {
+        Station station = stationRepository.findById(stationId)
+                .orElseThrow(() -> new EntityNotFoundException("Station not found"));
+
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "inventoryID"));
+
+        Page<Inventory> inventoryPage;
+        if (statuses != null && !statuses.isEmpty()) {
+            List<String> normalizedStatuses = statuses.stream()
+                    .filter(Objects::nonNull)
+                    .map(status -> status.toUpperCase(Locale.ROOT))
+                    .toList();
+
+            inventoryPage = inventoryRepository.findByStationStationIDAndStatusIn(
+                    stationId,
+                    normalizedStatuses,
+                    pageable
+            );
+        } else {
+            inventoryPage = inventoryRepository.findByStationStationID(stationId, pageable);
+        }
+
+        List<StationInventoryItemDTO> items = inventoryPage.getContent().stream()
+                .map(StationInventoryItemDTO::fromEntity)
+                .toList();
+
+        Map<String, Long> statusCounters = inventoryRepository.countByStatusAndStationId(stationId)
+                .stream()
+                .collect(Collectors.toMap(
+                        dto -> dto.getStatus() != null ? dto.getStatus().toUpperCase(Locale.ROOT) : "UNKNOWN",
+                        InventoryStatusCountDTO::getCount,
+                        (existing, replacement) -> replacement
+                ));
+
+        long totalCount = inventoryRepository.countByStationStationID(stationId);
+
+        return new StationInventoryPageDTO(
+                station.getStationID(),
+                station.getStationName(),
+                station.getStationStatus(),
+                station.getSlots(),
+                totalCount,
+                statusCounters,
+                inventoryPage.getNumber(),
+                inventoryPage.getSize(),
+                inventoryPage.getTotalElements(),
+                inventoryPage.getTotalPages(),
+                items
+        );
     private StationHealthDTO buildHealthSnapshot(Station station, boolean deriveStatus, boolean persistDerived) {
         List<InventoryStatusCountDTO> statusCounts = inventoryRepository.countByStatusAndStationId(station.getStationID());
         long available = aggregateByLabels(statusCounts, READY_STATUSES);

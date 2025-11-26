@@ -1,10 +1,17 @@
 package com.evswap.evswapstation.controller;
-
+import com.evswap.evswapstation.dto.StationInventoryPageDTO;
 import com.evswap.evswapstation.dto.StationHealthDTO;
 import com.evswap.evswapstation.dto.StationStatusUpdateRequest;
 import com.evswap.evswapstation.entity.Station;
 import com.evswap.evswapstation.enums.StationStatus;
 import com.evswap.evswapstation.service.StationService;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -42,6 +49,7 @@ public class StationController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<List<Station>> getAll() {
         return ResponseEntity.ok(stationService.getAll());
     }
@@ -67,18 +75,37 @@ public class StationController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<Station> getById(@PathVariable Integer id) {
         return stationService.getById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/{stationId}/inventory")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
+    public ResponseEntity<StationInventoryPageDTO> getInventoryDetails(
+            @PathVariable Integer stationId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(value = "status", required = false) List<String> statuses
+    ) {
+        try {
+            StationInventoryPageDTO payload = stationService.getStationInventoryPage(stationId, statuses, page, size);
+            return ResponseEntity.ok(payload);
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Station> create(@RequestBody Station station) {
         return ResponseEntity.ok(stationService.create(station));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Station> update(@PathVariable Integer id, @RequestBody Station station) {
         return ResponseEntity.ok(stationService.update(id, station));
     }
@@ -98,6 +125,7 @@ public class StationController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         stationService.delete(id);
         return ResponseEntity.noContent().build();
@@ -114,6 +142,7 @@ public class StationController {
      * POST /api/stations/{stationId}/transactions
      */
     @PostMapping("/{stationId}/transactions")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<SwapTransaction> createTransaction(
             @PathVariable Integer stationId,
             @RequestBody SwapTransaction transaction) {
@@ -145,6 +174,7 @@ public class StationController {
      * GET /api/stations/{stationId}/transactions
      */
     @GetMapping("/{stationId}/transactions")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<SwapTransaction>> getStationTransactions(@PathVariable Integer stationId) {
         List<SwapTransaction> transactions = transactionStore.values().stream()
                 .filter(t -> t.getStationId().equals(stationId))
@@ -158,6 +188,7 @@ public class StationController {
      * GET /api/stations/{stationId}/transactions/{transactionId}
      */
     @GetMapping("/{stationId}/transactions/{transactionId}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<SwapTransaction> getTransactionById(
             @PathVariable Integer stationId,
             @PathVariable Integer transactionId) {
@@ -174,6 +205,7 @@ public class StationController {
      * PUT /api/stations/{stationId}/transactions/{transactionId}
      */
     @PutMapping("/{stationId}/transactions/{transactionId}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<SwapTransaction> updateTransaction(
             @PathVariable Integer stationId,
             @PathVariable Integer transactionId,
@@ -199,6 +231,7 @@ public class StationController {
      * DELETE /api/stations/{stationId}/transactions/{transactionId}
      */
     @DeleteMapping("/{stationId}/transactions/{transactionId}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Void> deleteTransaction(
             @PathVariable Integer stationId,
             @PathVariable Integer transactionId) {
@@ -217,6 +250,7 @@ public class StationController {
      * GET /api/stations/{stationId}/transactions/search?customerName=...&customerEmail=...&vehicleVin=...
      */
     @GetMapping("/{stationId}/transactions/search")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<SwapTransaction>> searchStationTransactions(
             @PathVariable Integer stationId,
             @RequestParam(required = false) String customerName,
@@ -242,6 +276,7 @@ public class StationController {
      * GET /api/stations/{stationId}/revenue?startDate=...&endDate=...
      */
     @GetMapping("/{stationId}/revenue")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Map<String, Object>> getStationRevenue(
             @PathVariable Integer stationId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
@@ -272,6 +307,7 @@ public class StationController {
      * GET /api/stations/revenue/total
      */
     @GetMapping("/revenue/total")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Map<String, Object>> getTotalRevenue() {
         BigDecimal totalRevenue = transactionStore.values().stream()
                 .map(SwapTransaction::getAmount)

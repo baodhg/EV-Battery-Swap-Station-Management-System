@@ -6,6 +6,7 @@ import com.evswap.evswapstation.service.FeedbackService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class FeedbackController {
 
     // Create or Update Feedback
     @PostMapping
+    @PreAuthorize("hasAnyRole('DRIVER','ADMIN','STAFF')")
     public ResponseEntity<?> createOrUpdateFeedback(@RequestBody FeedbackDTO feedbackDTO) {
         try {
             Feedback feedback = feedbackService.saveFeedback(feedbackDTO);
@@ -32,6 +34,7 @@ public class FeedbackController {
 
     // Get Feedback by ID
     @GetMapping("/{feedbackId}")
+    @PreAuthorize("hasAnyRole('DRIVER','ADMIN','STAFF')")
     public ResponseEntity<?> getFeedbackById(@PathVariable Integer feedbackId) {
         try {
             Feedback feedback = feedbackService.getFeedbackById(feedbackId);
@@ -44,6 +47,7 @@ public class FeedbackController {
 
     // Get Feedbacks by User ID
     @GetMapping("/user/{userId}")
+    @PreAuthorize("hasAnyRole('DRIVER','ADMIN','STAFF')")
     public ResponseEntity<?> getFeedbacksByUserId(@PathVariable Integer userId) {
         try {
             List<Feedback> feedbacks = feedbackService.getFeedbacksByUserId(userId);
@@ -56,6 +60,7 @@ public class FeedbackController {
 
     // Get Feedbacks by Station ID
     @GetMapping("/station/{stationId}")
+    @PreAuthorize("hasAnyRole('DRIVER','ADMIN','STAFF')")
     public ResponseEntity<?> getFeedbacksByStationId(@PathVariable Integer stationId) {
         try {
             List<Feedback> feedbacks = feedbackService.getFeedbacksByStationId(stationId);
@@ -68,6 +73,7 @@ public class FeedbackController {
 
     // Delete Feedback
     @DeleteMapping("/{feedbackId}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<?> deleteFeedback(@PathVariable Integer feedbackId) {
         try {
             feedbackService.deleteFeedback(feedbackId);

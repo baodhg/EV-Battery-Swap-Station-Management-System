@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -15,6 +16,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -38,27 +40,14 @@ public class SecurityConfig {
                                 "/configuration/**",
                                 "/api/auth/**",
                                 "/api/stations/nearby",
-                                "/api/auth/forgot-password",
-                                "/api/auth/reset-password",
-                                "/api/auth/validate-reset-token",
                                 "/oauth2/**",
                                 "/login/**",
-                                "/api/payment/**",
-                                "/api/vehicles/**",
                                 "/payment/**",
-                                "/api/packages/**",
-                                "/api/batteries/**",
-                                "/api/transactions/**",
-                                "/api/reports/**",
-                                "/api/user-packages/**",
-                                "/api/users/**",
-                                "/api/bookings/**",
-                                "/api/feedbacks/**",
-                                "/api/stations/**",
-                                "/api/battery-returns/**",
-                                "/api/admin/dashboard/**"
-
-
+                                "/api/payment/success",
+                                "/api/payment/cancel",
+                                "/api/payment/status/**",
+                                "/api/vnpay/return",
+                                "/api/vnpay/ipn"
                         ).permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Cho phép OPTIONS
                         .anyRequest().authenticated()

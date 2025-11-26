@@ -6,6 +6,7 @@ import com.evswap.evswapstation.entity.Vehicle;
 import com.evswap.evswapstation.service.VehicleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/vehicles")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
 public class VehicleController {
     private final VehicleService vehicleService;
 
