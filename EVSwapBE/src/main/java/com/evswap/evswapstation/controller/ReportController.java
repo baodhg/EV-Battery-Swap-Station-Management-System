@@ -6,6 +6,7 @@ import com.evswap.evswapstation.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class ReportController {
 
     // API để lấy toàn bộ báo cáo với tên user
     @GetMapping("/with-username")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<ReportDTO>> getAllReportsWithUserName() {
         List<ReportDTO> reports = reportService.getAllReportsWithUserName();
         return new ResponseEntity<>(reports, HttpStatus.OK);
@@ -27,6 +29,7 @@ public class ReportController {
 
     // API để lấy toàn bộ báo cáo (không có tên user)
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<Report>> getAllReports() {
         List<Report> reports = reportService.getAllReports();
         return new ResponseEntity<>(reports, HttpStatus.OK);
@@ -34,6 +37,7 @@ public class ReportController {
 
     // API để lấy báo cáo theo ID với tên user
     @GetMapping("/{reportId}/with-username")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<ReportDTO> getReportByIdWithUserName(@PathVariable Long reportId) {
         ReportDTO report = reportService.getReportByIdWithUserName(reportId);
         if (report != null) {
@@ -45,6 +49,7 @@ public class ReportController {
 
     // API để lấy báo cáo theo ID (không có tên user)
     @GetMapping("/{reportId}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Report> getReportById(@PathVariable Long reportId) {
         Report report = reportService.getReportById(reportId);
         if (report != null) {
@@ -56,6 +61,7 @@ public class ReportController {
 
     // API để lấy báo cáo theo userId với tên user
     @GetMapping("/user/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<List<ReportDTO>> getReportsByUserId(@PathVariable Integer userId) {
         List<ReportDTO> reports = reportService.getReportsByUserId(userId);
         return new ResponseEntity<>(reports, HttpStatus.OK);
@@ -63,6 +69,7 @@ public class ReportController {
 
     // API để thêm báo cáo mới
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<Report> addReport(@RequestBody Report report) {
         Report newReport = reportService.addReport(report);
         return new ResponseEntity<>(newReport, HttpStatus.CREATED);
@@ -70,6 +77,7 @@ public class ReportController {
 
     // API để cập nhật trạng thái báo cáo
     @PutMapping("/{reportId}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Report> updateReportStatus(
             @PathVariable Long reportId,
             @RequestBody StatusUpdateRequest request) {
@@ -83,6 +91,7 @@ public class ReportController {
 
     // API để xóa báo cáo
     @DeleteMapping("/{reportId}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<Void> deleteReport(@PathVariable Long reportId) {
         boolean deleted = reportService.deleteReport(reportId);
         if (deleted) {

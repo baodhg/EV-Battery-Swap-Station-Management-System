@@ -4,12 +4,14 @@ import com.evswap.evswapstation.entity.Battery;
 import com.evswap.evswapstation.service.BatteryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/batteries")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN','STAFF')")
 public class BatteryController {
     private final BatteryService service;
 

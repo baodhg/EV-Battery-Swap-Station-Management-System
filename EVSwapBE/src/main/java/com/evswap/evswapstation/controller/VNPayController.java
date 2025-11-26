@@ -1,5 +1,6 @@
 package com.evswap.evswapstation.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +22,7 @@ public class VNPayController {
 
     // Tạo link thanh toán
     @GetMapping("/pay")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     @ResponseBody
     public String createPayment(@RequestParam long amount) {
         Map<String, String> params = new HashMap<>();

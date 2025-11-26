@@ -5,12 +5,14 @@ import com.evswap.evswapstation.entity.Inventory;
 import com.evswap.evswapstation.service.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/inventories")
+@PreAuthorize("hasAnyRole('ADMIN','STAFF')")
 public class InventoryController {
     private final InventoryService service;
 

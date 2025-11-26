@@ -48,9 +48,16 @@ const STUDENT_CULTURAL_HOUSE: Coordinates = {
 type NearbyStationsMapProps = {
   onForceCenter?: boolean;
   stations?: Station[];
+  selectedStationId?: string | number | null;
+  onStationSelect?: (station: Station | null) => void;
 };
 
-export default function NearbyStationsMap({ onForceCenter, stations: externalStations }: NearbyStationsMapProps) {
+export default function NearbyStationsMap({
+  onForceCenter,
+  stations: externalStations,
+  selectedStationId,
+  onStationSelect,
+}: NearbyStationsMapProps) {
   const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   const [mounted, setMounted] = useState(false);
   const [userPosition] = useState<Coordinates>(STUDENT_CULTURAL_HOUSE);
@@ -120,8 +127,34 @@ export default function NearbyStationsMap({ onForceCenter, stations: externalSta
   useEffect(() => {
     if (selectedStation && !stations.some((s) => s.id === selectedStation.id)) {
       setSelectedStation(null);
+      onStationSelect?.(null);
     }
-  }, [stations, selectedStation]);
+  }, [onStationSelect, selectedStation, stations]);
+
+  useEffect(() => {
+    if (!selectedStationId) {
+      if (selectedStation) {
+        setSelectedStation(null);
+        onStationSelect?.(null);
+      }
+      return;
+    }
+
+    if (selectedStation?.id === selectedStationId) {
+      return;
+    }
+
+    const match = stations.find((s) => s.id === selectedStationId);
+    if (match) {
+      setSelectedStation(match);
+      onStationSelect?.(match);
+      setViewState((prev) => ({
+        ...prev,
+        latitude: match.latitude,
+        longitude: match.longitude,
+      }));
+    }
+  }, [onStationSelect, selectedStation, selectedStationId, stations]);
 
   const buildLineFeature = useMemo(() => {
     return (
@@ -218,7 +251,7 @@ export default function NearbyStationsMap({ onForceCenter, stations: externalSta
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full border border-slate-200 bg-white/80">
       <div className="pl-4 pt-4 pb-6">
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <span role="img" aria-label="pin">
@@ -240,7 +273,10 @@ export default function NearbyStationsMap({ onForceCenter, stations: externalSta
           onMove={(evt) => setViewState(evt.viewState)}
           mapStyle="mapbox://styles/mapbox/streets-v12"
           style={{ width: "100%", height: "100%" }}
-          onClick={() => setSelectedStation(null)}
+          onClick={() => {
+            setSelectedStation(null);
+            onStationSelect?.(null);
+          }}
         >
           <NavigationControl position="bottom-right" />
 
@@ -284,6 +320,7 @@ export default function NearbyStationsMap({ onForceCenter, stations: externalSta
                   onClick={(event) => {
                     event.stopPropagation();
                     setSelectedStation(station);
+                    onStationSelect?.(station);
                     setViewState((prev) => ({
                       ...prev,
                       latitude: station.latitude,

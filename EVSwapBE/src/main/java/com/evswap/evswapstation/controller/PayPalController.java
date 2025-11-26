@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 
@@ -36,6 +37,7 @@ public class PayPalController {
      * Tạo thanh toán mới
      */
     @PostMapping("/create")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<?> createPayment(@RequestBody PaymentRequest request) {
         try {
             String cancelUrl = CANCEL_URL;
@@ -77,6 +79,7 @@ public class PayPalController {
      * Execute payment API endpoint for frontend
      */
     @PostMapping("/execute")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<?> executePayment(
             @RequestParam("paymentId") String paymentId,
             @RequestParam("PayerID") String payerId) {
@@ -143,6 +146,7 @@ public class PayPalController {
      * Kiểm tra trạng thái thanh toán
      */
     @GetMapping("/status/{paymentId}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<?> getPaymentStatus(@PathVariable String paymentId) {
         try {
             // Bạn có thể query từ database để lấy status

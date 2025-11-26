@@ -6,6 +6,7 @@ import com.evswap.evswapstation.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +29,7 @@ public class BookingController {
     private final BatteryRepository batteryRepository;
 
     @PostMapping("/create")
+    @PreAuthorize("hasAnyRole('DRIVER','ADMIN','STAFF')")
     public ResponseEntity<?> createBooking(@RequestBody BookingRequest request) {
         try {
             log.info("Creating booking for userId: {}, vehicleId: {}, stationId: {}",
@@ -223,6 +225,7 @@ public class BookingController {
     }
 
     @GetMapping("/user/{userId}")
+    @PreAuthorize("hasAnyRole('DRIVER','ADMIN','STAFF')")
     public ResponseEntity<?> getUserBookings(@PathVariable Integer userId) {
         try {
             var bookings = bookingRepository.findByUserIdOrderByTimeDateDesc(userId);
@@ -234,6 +237,7 @@ public class BookingController {
     }
 
     @GetMapping("/{bookingId}")
+    @PreAuthorize("hasAnyRole('DRIVER','ADMIN','STAFF')")
     public ResponseEntity<?> getBookingById(@PathVariable Long bookingId) {
         try {
             BookingEntity booking = bookingRepository.findById(bookingId)

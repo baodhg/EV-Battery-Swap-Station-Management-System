@@ -4,6 +4,7 @@ import com.evswap.evswapstation.entity.PackagePlan;
 import com.evswap.evswapstation.repository.PackagePlanRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,12 +20,14 @@ public class PackagePlanController {
 
     // Lấy danh sách tất cả gói
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public List<PackagePlan> getAllPackages() {
         return packagePlanRepository.findAll();
     }
 
     // Lấy 1 gói theo ID
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<PackagePlan> getPackageById(@PathVariable Integer id) {
         Optional<PackagePlan> plan = packagePlanRepository.findById(id);
         return plan.map(ResponseEntity::ok)
@@ -33,6 +36,7 @@ public class PackagePlanController {
 
     // Tạo mới gói
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PackagePlan> createPackage(@RequestBody PackagePlan plan) {
         PackagePlan saved = packagePlanRepository.save(plan);
         return ResponseEntity.ok(saved);
@@ -40,6 +44,7 @@ public class PackagePlanController {
 
     // Cập nhật gói
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PackagePlan> updatePackage(@PathVariable Integer id, @RequestBody PackagePlan updatedPlan) {
         return packagePlanRepository.findById(id)
                 .map(existing -> {
@@ -54,6 +59,7 @@ public class PackagePlanController {
 
     // Xóa gói
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deletePackage(@PathVariable Integer id) {
         if (packagePlanRepository.existsById(id)) {
             packagePlanRepository.deleteById(id);
