@@ -19,6 +19,7 @@ logs/
 !.env.local.example
 EVSwapFE/.env
 EVSwapBE/.env
+EVCSM/
 
 # Frontend (Next.js / Node)
 node_modules/
