@@ -9,15 +9,14 @@ import com.evswap.evswapstation.repository.InventoryRepository;
 import com.evswap.evswapstation.repository.StationRepository;
 import jakarta.persistence.EntityNotFoundException;
 import com.evswap.evswapstation.dto.StationHealthDTO;
-import com.evswap.evswapstation.entity.Station;
 import com.evswap.evswapstation.enums.StationStatus;
-import com.evswap.evswapstation.repository.InventoryRepository;
-import com.evswap.evswapstation.repository.StationRepository;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -142,23 +141,11 @@ public class StationService {
 
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), 50);
-        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "inventoryID"));
-
-        Page<Inventory> inventoryPage;
-        if (statuses != null && !statuses.isEmpty()) {
-            List<String> normalizedStatuses = statuses.stream()
-                    .filter(Objects::nonNull)
-                    .map(status -> status.toUpperCase(Locale.ROOT))
-                    .toList();
-
-            inventoryPage = inventoryRepository.findByStationStationIDAndStatusIn(
-                    stationId,
-                    normalizedStatuses,
-                    pageable
-            );
-        } else {
-            inventoryPage = inventoryRepository.findByStationStationID(stationId, pageable);
-        }
+        
+        // 🆕 Luôn lấy toàn bộ inventory của station (không filter bằng status ở DB)
+        // Sau đó filter ở client-side để có thể hiển thị empty slots
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "slotNumber"));
+        Page<Inventory> inventoryPage = inventoryRepository.findByStationStationID(stationId, pageable);
 
         List<StationInventoryItemDTO> items = inventoryPage.getContent().stream()
                 .map(StationInventoryItemDTO::fromEntity)
@@ -166,6 +153,24 @@ public class StationService {
 
         // 🆕 Fill các slot trống để hiển thị toàn bộ slot trên frontend
         List<StationInventoryItemDTO> allItems = fillEmptySlots(items, station.getSlots());
+
+        // 🆕 Nếu có status filter, chỉ lọc những slot có status match hoặc empty
+        List<StationInventoryItemDTO> filteredItems = allItems;
+        if (statuses != null && !statuses.isEmpty()) {
+            List<String> normalizedStatuses = statuses.stream()
+                    .filter(Objects::nonNull)
+                    .map(status -> status.toUpperCase(Locale.ROOT))
+                    .toList();
+
+            filteredItems = allItems.stream()
+                    .filter(item -> {
+                        String itemStatus = item.getInventoryStatus() != null 
+                            ? item.getInventoryStatus().toUpperCase(Locale.ROOT) 
+                            : "UNKNOWN";
+                        return normalizedStatuses.contains(itemStatus);
+                    })
+                    .collect(Collectors.toList());
+        }
 
         Map<String, Long> statusCounters = inventoryRepository.countByStatusAndStationId(stationId)
                 .stream()
@@ -175,7 +180,7 @@ public class StationService {
                         (existing, replacement) -> replacement
                 ));
 
-        //[object Object]Thêm count cho EMPTY slots
+        // 🆕 Thêm count cho EMPTY slots
         long emptyCount = (station.getSlots() != null ? station.getSlots() : 0) - inventoryRepository.countByStationStationID(stationId);
         if (emptyCount > 0) {
             statusCounters.put("EMPTY", emptyCount);
@@ -186,16 +191,18 @@ public class StationService {
         return new StationInventoryPageDTO(
                 station.getStationID(),
                 station.getStationName(),
-                station.getStationStatus(),
+                Optional.ofNullable(station.getStationStatus()).map(Enum::name).orElse(null),
                 station.getSlots(),
                 totalCount,
                 statusCounters,
                 inventoryPage.getNumber(),
                 inventoryPage.getSize(),
-                inventoryPage.getTotalElements(),
-                inventoryPage.getTotalPages(),
-                allItems // 🆕 Trả về toàn bộ items (kể cả slot trống)
+                filteredItems.size(), // 🆕 Số items sau khi filter
+                (int) Math.ceil((double) filteredItems.size() / safeSize), // 🆕 Tính lại totalPages
+                filteredItems // 🆕 Trả về items đã filter (kể cả empty slots)
         );
+    }
+
     private StationHealthDTO buildHealthSnapshot(Station station, boolean deriveStatus, boolean persistDerived) {
         List<InventoryStatusCountDTO> statusCounts = inventoryRepository.countByStatusAndStationId(station.getStationID());
         long available = aggregateByLabels(statusCounts, READY_STATUSES);

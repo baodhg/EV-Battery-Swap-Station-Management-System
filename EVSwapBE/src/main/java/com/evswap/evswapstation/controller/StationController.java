@@ -49,7 +49,6 @@ public class StationController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<List<Station>> getAll() {
         return ResponseEntity.ok(stationService.getAll());
     }
@@ -75,7 +74,6 @@ public class StationController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<Station> getById(@PathVariable Integer id) {
         return stationService.getById(id)
                 .map(ResponseEntity::ok)
@@ -83,7 +81,6 @@ public class StationController {
     }
 
     @GetMapping("/{stationId}/inventory")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF','DRIVER')")
     public ResponseEntity<StationInventoryPageDTO> getInventoryDetails(
             @PathVariable Integer stationId,
             @RequestParam(defaultValue = "0") int page,
@@ -174,7 +171,6 @@ public class StationController {
      * GET /api/stations/{stationId}/transactions
      */
     @GetMapping("/{stationId}/transactions")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<List<SwapTransaction>> getStationTransactions(@PathVariable Integer stationId) {
         List<SwapTransaction> transactions = transactionStore.values().stream()
                 .filter(t -> t.getStationId().equals(stationId))

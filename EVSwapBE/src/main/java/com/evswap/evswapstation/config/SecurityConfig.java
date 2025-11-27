@@ -39,7 +39,6 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/configuration/**",
                                 "/api/auth/**",
-                                "/api/stations/nearby",
                                 "/oauth2/**",
                                 "/login/**",
                                 "/payment/**",
@@ -49,7 +48,10 @@ public class SecurityConfig {
                                 "/api/vnpay/return",
                                 "/api/vnpay/ipn"
                         ).permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Cho phép OPTIONS
+                        // Permit ALL GET under /api/** for drivers/guests
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/**").permitAll()
+                        // Allow preflight
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
