@@ -164,6 +164,9 @@ public class StationService {
                 .map(StationInventoryItemDTO::fromEntity)
                 .toList();
 
+        // 🆕 Fill các slot trống để hiển thị toàn bộ slot trên frontend
+        List<StationInventoryItemDTO> allItems = fillEmptySlots(items, station.getSlots());
+
         Map<String, Long> statusCounters = inventoryRepository.countByStatusAndStationId(stationId)
                 .stream()
                 .collect(Collectors.toMap(
@@ -171,6 +174,12 @@ public class StationService {
                         InventoryStatusCountDTO::getCount,
                         (existing, replacement) -> replacement
                 ));
+
+        //[object Object]Thêm count cho EMPTY slots
+        long emptyCount = (station.getSlots() != null ? station.getSlots() : 0) - inventoryRepository.countByStationStationID(stationId);
+        if (emptyCount > 0) {
+            statusCounters.put("EMPTY", emptyCount);
+        }
 
         long totalCount = inventoryRepository.countByStationStationID(stationId);
 
@@ -185,7 +194,7 @@ public class StationService {
                 inventoryPage.getSize(),
                 inventoryPage.getTotalElements(),
                 inventoryPage.getTotalPages(),
-                items
+                allItems // 🆕 Trả về toàn bộ items (kể cả slot trống)
         );
     private StationHealthDTO buildHealthSnapshot(Station station, boolean deriveStatus, boolean persistDerived) {
         List<InventoryStatusCountDTO> statusCounts = inventoryRepository.countByStatusAndStationId(station.getStationID());
@@ -271,5 +280,32 @@ public class StationService {
                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
+    }
+
+    // 🆕 Fill các slot trống để hiển thị toàn bộ slot trên frontend
+    private List<StationInventoryItemDTO> fillEmptySlots(List<StationInventoryItemDTO> items, Integer totalSlots) {
+        if (totalSlots == null || totalSlots <= 0) {
+            return items;
+        }
+
+        // Lấy các slot number đã có
+        Set<Integer> existingSlots = items.stream()
+                .map(StationInventoryItemDTO::getSlotNumber)
+                .collect(Collectors.toSet());
+
+        // Tạo list mới với toàn bộ slot
+        List<StationInventoryItemDTO> allSlots = new java.util.ArrayList<>(items);
+
+        // Thêm các slot trống
+        for (int slotNum = 1; slotNum <= totalSlots; slotNum++) {
+            if (!existingSlots.contains(slotNum)) {
+                allSlots.add(StationInventoryItemDTO.createEmptySlot(slotNum));
+            }
+        }
+
+        // Sắp xếp theo slot number
+        allSlots.sort(Comparator.comparingInt(StationInventoryItemDTO::getSlotNumber));
+
+        return allSlots;
     }
 }

@@ -20,9 +20,13 @@ public class Inventory {
     @JoinColumn(name = "stationID", nullable = false)
     private Station station;
 
+    @Column(name = "SlotNumber")
+    private Integer slotNumber;
+
     @ManyToOne
-    @JoinColumn(name = "batteryID", nullable = false)
+    @JoinColumn(name = "batteryID", nullable = true) // Battery can be null if the slot is empty
     private Battery battery;
 
+    // Status of the slot itself (e.g., ACTIVE, MAINTENANCE, EMPTY)
     private String status;
 }
