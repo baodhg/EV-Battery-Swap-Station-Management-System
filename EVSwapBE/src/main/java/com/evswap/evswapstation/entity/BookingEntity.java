@@ -3,6 +3,7 @@ package com.evswap.evswapstation.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "Booking")
@@ -27,7 +28,7 @@ public class BookingEntity {
     private LocalDateTime timeDate;
 
     @Column(name = "BatteryID")
-    private Long batteryId;
+    private UUID batteryId;
 
     @Column(name = "Status")
     private String status;

@@ -37,7 +37,9 @@ type StationInventoryItem = {
   capacity?: number | null
   model?: string | null
   usageCount?: number | null
-  borrowStatus?: string | null
+  cycleCount?: number | null
+  remainingCapacity?: number | null
+  healthStatus?: string | null
 }
 
 type StationInventoryResponse = {
@@ -133,7 +135,21 @@ const authorizedJsonFetcher = async (url: string) => {
     throw new Error(`API Error: ${res.status} - ${res.statusText}`)
   }
 
-  return res.json()
+  const data = await res.json()
+
+  // Map backend cycleCount to usageCount for UI
+  if (data?.items) {
+    return {
+      ...data,
+      items: data.items.map((item: any) => ({
+        ...item,
+        usageCount: item.usageCount ?? item.cycleCount ?? null,
+        cycleCount: item.cycleCount ?? item.usageCount ?? null,
+      })),
+    }
+  }
+
+  return data
 }
 
 const DEFAULT_LOCATION = {
@@ -150,8 +166,11 @@ export default function FindStationsPage() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailStation, setDetailStation] = useState<Station | null>(null)
   const [focusedStationId, setFocusedStationId] = useState<string | number | null>(null)
+
+  // Mỗi trang trong modal = 1 "inventory layout" (ví dụ 1 tủ/kệ) gồm X slot
+  const SLOTS_PER_INVENTORY = 12
   const [inventoryPageIndex, setInventoryPageIndex] = useState(0)
-  const inventoryPageSize = 12
+  const inventoryPageSize = SLOTS_PER_INVENTORY
   const [inventoryStatusFilter, setInventoryStatusFilter] = useState<string[]>([])
   const [selectedInventory, setSelectedInventory] = useState<StationInventoryItem | null>(null)
 
@@ -271,6 +290,7 @@ export default function FindStationsPage() {
 
   const handleViewDetails = (station: Station) => {
     setDetailStation(station)
+    setInventoryStatusFilter(["AVAILABLE"])
     setDetailOpen(true)
   }
 
@@ -453,7 +473,7 @@ export default function FindStationsPage() {
           }
         }}
       >
-        <DialogContent className="max-w-7xl">
+        <DialogContent className="w-[96vw] sm:!max-w-[1100px] xl:!max-w-[1400px]">
           <DialogHeader>
             <DialogTitle>{detailStation?.name ?? "Station details"}</DialogTitle>
             <DialogDescription>
@@ -466,11 +486,18 @@ export default function FindStationsPage() {
           </DialogHeader>
 
           {detailStation && (
-            <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 uppercase tracking-wide">
-                  <span>Station inventory layout</span>
-                  <span>{stationInventory?.totalItems ?? detailStation.total ?? 0} tracked slots</span>
+                  <span>
+                    {stationInventory
+                      ? `Inventory ${stationInventory.page + 1} of ${stationInventory.totalPages}`
+                      : "Station inventory layout"}
+                  </span>
+                  <span>
+                    {stationInventory?.totalItems ?? detailStation.total ?? 0} tracked slots •{" "}
+                    {SLOTS_PER_INVENTORY} slots per inventory
+                  </span>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -482,7 +509,7 @@ export default function FindStationsPage() {
                       setInventoryPageIndex(0)
                     }}
                   >
-                    All ({stationInventory?.totalItems ?? 0})
+                    All ({stationInventory?.totalInventories ?? 0})
                   </Button>
                   {Object.entries(stationInventory?.statusCounters ?? {}).map(([statusKey, count]) => {
                     const normalized = statusKey?.toUpperCase?.() ?? "UNKNOWN"
@@ -538,7 +565,7 @@ export default function FindStationsPage() {
                           <button
                             key={item.inventoryId}
                             onClick={() => setSelectedInventory(item)}
-                            className={`rounded-lg border p-3 text-left transition focus-visible:outline focus-visible:ring-2 flex flex-col gap-1 ${
+                            className={`rounded-lg border p-3 text-left transition focus-visible:outline focus-visible:ring-2 flex flex-col justify-between gap-1 min-h-[120px] ${
                               isSelected ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white"
                             }`}
                           >
@@ -546,7 +573,7 @@ export default function FindStationsPage() {
                             <p className={`text-[11px] uppercase font-semibold ${getInventoryStatusColor(normalizedStatus)}`}>
                               {formatStatusLabel(normalizedStatus)}
                             </p>
-                            <div className="mt-1 text-[11px] text-gray-500 space-y-1">
+                            <div className="mt-1 text-[10px] text-gray-500 space-y-0.5 break-words">
                               <p>{item.batteryName ?? `Battery ${item.batteryId ?? "-"}`}</p>
                               <p>{item.batteryStatus ?? "Unknown state"}</p>
                             </div>
@@ -606,10 +633,6 @@ export default function FindStationsPage() {
                 {selectedInventory ? (
                   <dl className="space-y-3 text-sm">
                     <div className="flex justify-between">
-                      <dt className="text-gray-500">Battery ID</dt>
-                      <dd className="font-semibold">{selectedInventory.batteryId ?? "N/A"}</dd>
-                    </div>
-                    <div className="flex justify-between">
                       <dt className="text-gray-500">Battery name</dt>
                       <dd className="font-semibold">
                         {selectedInventory.batteryName ?? `Battery ${selectedInventory.batteryId ?? "-"}`}
@@ -634,8 +657,14 @@ export default function FindStationsPage() {
                       <dd className="font-semibold">{selectedInventory.usageCount ?? "—"}</dd>
                     </div>
                     <div className="flex justify-between">
-                      <dt className="text-gray-500">Borrow status</dt>
-                      <dd className="font-semibold">{selectedInventory.borrowStatus ?? "—"}</dd>
+                      <dt className="text-gray-500">Health</dt>
+                      <dd className="font-semibold">{selectedInventory.healthStatus ?? "—"}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Remaining</dt>
+                      <dd className="font-semibold">
+                        {selectedInventory.remainingCapacity != null ? `${selectedInventory.remainingCapacity}%` : "—"}
+                      </dd>
                     </div>
                   </dl>
                 ) : (

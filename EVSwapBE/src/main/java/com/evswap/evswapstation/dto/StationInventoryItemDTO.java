@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -14,14 +16,14 @@ import lombok.NoArgsConstructor;
 public class StationInventoryItemDTO {
     private Integer inventoryId;
     private String inventoryStatus;
-    private Integer batteryId;
+    private UUID batteryId;
     private String batteryName;
     private String batteryStatus;
-    private Integer capacity;
+    private BigDecimal capacity;
     private String batteryType;
-    private String model;
     private Integer usageCount;
-    private String borrowStatus;
+    private BigDecimal remainingCapacity;
+    private String healthStatus;
 
     public static StationInventoryItemDTO fromEntity(Inventory inventory) {
         Battery battery = inventory.getBattery();
@@ -34,10 +36,9 @@ public class StationInventoryItemDTO {
                 .batteryStatus(battery != null ? battery.getStatus() : null)
                 .capacity(battery != null ? battery.getCapacity() : null)
                 .batteryType(battery != null ? battery.getBatteryType() : null)
-                .model(battery != null ? battery.getModel() : null)
                 .usageCount(battery != null ? battery.getUsageCount() : null)
-                .borrowStatus(battery != null ? battery.getBorrowStatus() : null)
+                .remainingCapacity(battery != null ? battery.getRemainingCapacity() : null)
+                .healthStatus(battery != null ? battery.getHealthStatus() : null)
                 .build();
     }
 }
-

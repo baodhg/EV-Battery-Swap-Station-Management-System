@@ -29,22 +29,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
-    // Danh sách các endpoint không cần JWT
-    private static final List<String> PUBLIC_ENDPOINTS = Arrays.asList(
-            "/api/auth/login",
-            "/api/auth/register",
-            "/api/auth/forgot-password",
-            "/api/vehicles",
-            "/api/auth/reset-password",
-            "/api/auth/validate-reset-token",
-            "/api/auth/test",
-            "/api/stations/nearby",
-            "/swagger-ui",
-            "/v3/api-docs",
-            "/swagger-resources",
-            "/webjars"
-    );
-
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -52,59 +36,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        final String requestPath = request.getRequestURI();
         final String authHeader = request.getHeader("Authorization");
 
-        log.debug("Processing request: {} {}", request.getMethod(), requestPath);
-
-        // ✅ BỎ QUA JWT filter cho các public endpoints
-        if (shouldSkipFilter(requestPath)) {
-            log.debug("Skipping JWT filter for public endpoint: {}", requestPath);
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // ✅ BỎ QUA nếu không có Authorization header
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.debug("No JWT token found in request headers");
             filterChain.doFilter(request, response);
-            return;
+            return; // Nếu không có token, chuyển cho các filter sau xử lý
         }
 
         try {
             final String jwt = authHeader.substring(7);
-            final String userEmail = jwtService.extractUsername(jwt);
+            final String email = jwtService.extractUsername(jwt); // Subject là email
 
-            // Nếu có JWT và user chưa authenticated
-            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            // Nếu có token và user chưa được xác thực trong SecurityContext
+            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(email);
 
-                // Validate JWT
-                if (jwtService.isTokenValid(jwt, (User) userDetails)) {
+                // Nếu token hợp lệ, tạo Authentication và đặt vào SecurityContext
+                if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
-                            userDetails.getAuthorities()
+                            userDetails.getAuthorities() // Quan trọng: lấy quyền từ UserDetails
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    log.debug("User {} authenticated successfully", userEmail);
+                    log.debug("User '{}' authenticated successfully with roles: {}", email, userDetails.getAuthorities());
                 } else {
-                    log.warn("Invalid JWT token for user: {}", userEmail);
+                    log.warn("Invalid JWT token for user: {}", email);
                 }
             }
         } catch (Exception e) {
             log.error("Cannot set user authentication: {}", e.getMessage());
+            // Cân nhắc trả về lỗi 401 ở đây nếu cần
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    /**
-     * Kiểm tra xem request có cần bỏ qua JWT filter không
-     */
-    private boolean shouldSkipFilter(String requestPath) {
-        return PUBLIC_ENDPOINTS.stream()
-                .anyMatch(requestPath::startsWith);
     }
 }

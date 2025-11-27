@@ -66,29 +66,6 @@ public class BatteryController {
         return ResponseEntity.ok(count);
     }
 
-    @GetMapping("/classify")
-    public ResponseEntity<List<Battery>> classifyBatteries(
-            @RequestParam(required = false) Integer capacity,
-            @RequestParam(required = false) String model,
-            @RequestParam(required = false) String status) {
-
-        List<Battery> batteries = service.classifyBatteries(capacity, model, status);
-        return ResponseEntity.ok(batteries);
-    }
-
-    @GetMapping("/classify/capacity")
-    public ResponseEntity<List<Battery>> classifyByCapacity(@RequestParam Integer capacity) {
-        List<Battery> batteries = service.classifyByCapacity(capacity);
-        return ResponseEntity.ok(batteries);
-    }
-
-    // Phân loại pin theo mẫu mã
-    @GetMapping("/classify/model")
-    public ResponseEntity<List<Battery>> classifyByModel(@RequestParam String model) {
-        List<Battery> batteries = service.classifyByModel(model);
-        return ResponseEntity.ok(batteries);
-    }
-
     // Phân loại pin theo tình trạng
     @GetMapping("/classify/status")
     public ResponseEntity<List<Battery>> classifyByStatus(@RequestParam String status) {

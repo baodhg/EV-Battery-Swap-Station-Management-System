@@ -40,7 +40,6 @@ public class BatteryService {
         existingBattery.setStatus(b.getStatus());
         existingBattery.setQuantity(b.getQuantity());  // Cập nhật thêm thông tin cần thiết
         existingBattery.setCapacity(b.getCapacity());
-        existingBattery.setModel(b.getModel());
         existingBattery.setUsageCount(b.getUsageCount());
 
         // Lưu lại viên pin đã được cập nhật
@@ -68,19 +67,6 @@ public class BatteryService {
     // Đếm số lượng pin với trạng thái 'Maintenance'
     public long countMaintenance() {
         return repo.countByStatus("Maintenance");
-    }
-
-    public List<Battery> classifyBatteries(Integer capacity, String model, String status) {
-        return repo.findByCapacityAndModelAndStatus(capacity, model, status);
-    }
-
-    public List<Battery> classifyByCapacity(Integer capacity) {
-        return repo.findByCapacity(capacity);
-    }
-
-    // Phân loại pin theo mẫu mã
-    public List<Battery> classifyByModel(String model) {
-        return repo.findByModel(model);
     }
 
     // Phân loại pin theo tình trạng

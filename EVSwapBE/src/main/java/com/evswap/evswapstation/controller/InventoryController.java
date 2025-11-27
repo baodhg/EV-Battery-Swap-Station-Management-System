@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/inventories")
-@PreAuthorize("hasAnyRole('ADMIN','STAFF')")
 public class InventoryController {
     private final InventoryService service;
 
@@ -34,12 +33,14 @@ public class InventoryController {
 
     @Operation(summary = "Thêm mới Inventory")
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public Inventory create(@RequestBody Inventory inventory) {
         return service.save(inventory);
     }
 
     @Operation(summary = "Cập nhật Inventory")
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public Inventory update(@PathVariable Integer id, @RequestBody Inventory inventory) {
         inventory.setInventoryID(id);
         return service.save(inventory);
@@ -47,6 +48,7 @@ public class InventoryController {
 
     @Operation(summary = "Xóa Inventory theo ID")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public void delete(@PathVariable Integer id) {
         service.delete(id);
     }

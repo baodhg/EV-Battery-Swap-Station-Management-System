@@ -27,7 +27,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-        return user.getUserName();
+        return user.getEmail(); // Sử dụng email làm định danh chính cho UserDetails
     }
 
     @Override
