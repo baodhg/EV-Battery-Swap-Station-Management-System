@@ -15,6 +15,7 @@ import java.util.UUID;
 @Builder
 public class StationInventoryItemDTO {
     private Integer inventoryId;
+    private Integer slotNumber;
     private String inventoryStatus;
     private UUID batteryId;
     private String batteryName;
@@ -24,12 +25,14 @@ public class StationInventoryItemDTO {
     private Integer usageCount;
     private BigDecimal remainingCapacity;
     private String healthStatus;
+    private Boolean isEmpty; // 🆕 Đánh dấu slot trống
 
     public static StationInventoryItemDTO fromEntity(Inventory inventory) {
         Battery battery = inventory.getBattery();
 
         return StationInventoryItemDTO.builder()
                 .inventoryId(inventory.getInventoryID())
+                .slotNumber(inventory.getSlotNumber())
                 .inventoryStatus(inventory.getStatus())
                 .batteryId(battery != null ? battery.getBatteryID() : null)
                 .batteryName(battery != null ? battery.getBatteryName() : null)
@@ -39,6 +42,24 @@ public class StationInventoryItemDTO {
                 .usageCount(battery != null ? battery.getUsageCount() : null)
                 .remainingCapacity(battery != null ? battery.getRemainingCapacity() : null)
                 .healthStatus(battery != null ? battery.getHealthStatus() : null)
+                .isEmpty(battery == null) // 🆕 Nếu không có pin thì slot trống
+                .build();
+    }
+
+    // [object Object]ạo placeholder cho slot trống
+    public static StationInventoryItemDTO createEmptySlot(Integer slotNumber) {
+        return StationInventoryItemDTO.builder()
+                .slotNumber(slotNumber)
+                .inventoryStatus("EMPTY")
+                .isEmpty(true)
+                .batteryId(null)
+                .batteryName(null)
+                .batteryStatus(null)
+                .capacity(null)
+                .batteryType(null)
+                .usageCount(null)
+                .remainingCapacity(null)
+                .healthStatus(null)
                 .build();
     }
 }

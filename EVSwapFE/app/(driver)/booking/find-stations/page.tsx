@@ -29,6 +29,7 @@ interface Station {
 
 type StationInventoryItem = {
   inventoryId: number
+  slotNumber?: number
   inventoryStatus: string | null
   batteryId: number | string | null
   batteryName?: string | null
@@ -40,6 +41,7 @@ type StationInventoryItem = {
   cycleCount?: number | null
   remainingCapacity?: number | null
   healthStatus?: string | null
+  isEmpty?: boolean // 🆕 Đánh dấu slot trống
 }
 
 type StationInventoryResponse = {
@@ -182,11 +184,13 @@ export default function FindStationsPage() {
       .replace(/\b\w/g, (char) => char.toUpperCase())
   }
 
-  const getInventoryStatusColor = (value?: string | null) => {
+  const getInventoryStatusColor = (value?: string | null, isEmpty?: boolean) => {
+    if (isEmpty) return "text-gray-400" // 🆕 Slot trống
     const normalized = value?.toLowerCase() ?? "unknown"
     if (["available", "active", "new", "ready"].includes(normalized)) return "text-emerald-600"
     if (["maintenance", "retired", "pending"].includes(normalized)) return "text-amber-500"
     if (["damaged", "fault", "error"].includes(normalized)) return "text-rose-500"
+    if (["empty"].includes(normalized)) return "text-gray-400" // 🆕 Empty status
     return "text-slate-500"
   }
 
@@ -561,21 +565,35 @@ export default function FindStationsPage() {
                       {stationInventory.items.map((item) => {
                         const isSelected = selectedInventory?.inventoryId === item.inventoryId
                         const normalizedStatus = item.inventoryStatus ?? "UNKNOWN"
+                        const isEmpty = item.isEmpty === true // 🆕 Check if slot is empty
+                        const slotLabel = item.slotNumber ? `Slot #${item.slotNumber}` : `Slot #${item.inventoryId}` // 🆕 Use slotNumber if available
+
                         return (
                           <button
                             key={item.inventoryId}
                             onClick={() => setSelectedInventory(item)}
+                            disabled={isEmpty} // 🆕 Disable click for empty slots
                             className={`rounded-lg border p-3 text-left transition focus-visible:outline focus-visible:ring-2 flex flex-col justify-between gap-1 min-h-[120px] ${
-                              isSelected ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white"
+                              isEmpty
+                                ? "border-dashed border-gray-300 bg-gray-50 opacity-60 cursor-not-allowed" // 🆕 Empty slot styling
+                                : isSelected
+                                  ? "border-blue-600 bg-blue-50"
+                                  : "border-gray-200 bg-white hover:border-gray-300"
                             }`}
                           >
-                            <p className="text-xs font-semibold text-gray-700">Slot #{item.inventoryId}</p>
-                            <p className={`text-[11px] uppercase font-semibold ${getInventoryStatusColor(normalizedStatus)}`}>
-                              {formatStatusLabel(normalizedStatus)}
+                            <p className="text-xs font-semibold text-gray-700">{slotLabel}</p>
+                            <p className={`text-[11px] uppercase font-semibold ${getInventoryStatusColor(normalizedStatus, isEmpty)}`}>
+                              {isEmpty ? "🔌 Empty" : formatStatusLabel(normalizedStatus)} {/* 🆕 Show empty indicator */}
                             </p>
                             <div className="mt-1 text-[10px] text-gray-500 space-y-0.5 break-words">
-                              <p>{item.batteryName ?? `Battery ${item.batteryId ?? "-"}`}</p>
-                              <p>{item.batteryStatus ?? "Unknown state"}</p>
+                              {isEmpty ? (
+                                <p className="text-gray-400 italic">No battery in this slot</p> // 🆕 Empty message
+                              ) : (
+                                <>
+                                  <p>{item.batteryName ?? `Battery ${item.batteryId ?? "-"}`}</p>
+                                  <p>{item.batteryStatus ?? "Unknown state"}</p>
+                                </>
+                              )}
                             </div>
                           </button>
                         )
@@ -619,54 +637,73 @@ export default function FindStationsPage() {
                 <div>
                   <p className="text-xs text-gray-500">Slot details</p>
                   <h4 className="text-lg font-semibold">
-                    {selectedInventory ? `Slot #${selectedInventory.inventoryId}` : "Select any slot"}
+                    {selectedInventory ? `Slot #${selectedInventory.slotNumber ?? selectedInventory.inventoryId}` : "Select any slot"}
                   </h4>
                   <p className="text-xs text-gray-500">
                     {selectedInventory
-                      ? selectedInventory.inventoryStatus?.toUpperCase() === "AVAILABLE"
-                        ? "Available for swap now"
-                        : `Status: ${formatStatusLabel(selectedInventory.inventoryStatus)}`
+                      ? selectedInventory.isEmpty
+                        ? "🔌 This slot is empty - no battery available" // 🆕 Empty slot message
+                        : selectedInventory.inventoryStatus?.toUpperCase() === "AVAILABLE"
+                          ? "✅ Available for swap now"
+                          : `Status: ${formatStatusLabel(selectedInventory.inventoryStatus)}`
                       : "Tap any slot on the layout to view its status"}
                   </p>
                 </div>
 
                 {selectedInventory ? (
-                  <dl className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <dt className="text-gray-500">Battery name</dt>
-                      <dd className="font-semibold">
-                        {selectedInventory.batteryName ?? `Battery ${selectedInventory.batteryId ?? "-"}`}
-                      </dd>
+                  selectedInventory.isEmpty ? (
+                    // 🆕 Empty slot details
+                    <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 space-y-3">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <span className="text-2xl">🔌</span>
+                        <div>
+                          <p className="font-semibold">Empty Slot</p>
+                          <p className="text-xs text-gray-500">No battery is currently in this slot</p>
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-600 space-y-2">
+                        <p>This slot is available for battery placement. Please check back later or visit another station.</p>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-500">Battery type</dt>
-                      <dd className="font-semibold">{selectedInventory.batteryType ?? "—"}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-500">Battery status</dt>
-                      <dd className="font-semibold">{formatStatusLabel(selectedInventory.batteryStatus)}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-500">Capacity</dt>
-                      <dd className="font-semibold">
-                        {selectedInventory.capacity != null ? `${selectedInventory.capacity} Ah` : "—"}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-500">Usage count</dt>
-                      <dd className="font-semibold">{selectedInventory.usageCount ?? "—"}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-500">Health</dt>
-                      <dd className="font-semibold">{selectedInventory.healthStatus ?? "—"}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-500">Remaining</dt>
-                      <dd className="font-semibold">
-                        {selectedInventory.remainingCapacity != null ? `${selectedInventory.remainingCapacity}%` : "—"}
-                      </dd>
-                    </div>
-                  </dl>
+                  ) : (
+                    // 🆕 Occupied slot details
+                    <dl className="space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <dt className="text-gray-500">Battery name</dt>
+                        <dd className="font-semibold">
+                          {selectedInventory.batteryName ?? `Battery ${selectedInventory.batteryId ?? "-"}`}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-500">Battery type</dt>
+                        <dd className="font-semibold">{selectedInventory.batteryType ?? "—"}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-500">Battery status</dt>
+                        <dd className="font-semibold">{formatStatusLabel(selectedInventory.batteryStatus)}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-500">Capacity</dt>
+                        <dd className="font-semibold">
+                          {selectedInventory.capacity != null ? `${selectedInventory.capacity} Ah` : "—"}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-500">Usage count</dt>
+                        <dd className="font-semibold">{selectedInventory.usageCount ?? "—"}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-500">Health</dt>
+                        <dd className="font-semibold">{selectedInventory.healthStatus ?? "—"}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-500">Remaining</dt>
+                        <dd className="font-semibold">
+                          {selectedInventory.remainingCapacity != null ? `${selectedInventory.remainingCapacity}%` : "—"}
+                        </dd>
+                      </div>
+                    </dl>
+                  )
                 ) : (
                   <div className="text-sm text-gray-500 border border-dashed rounded-lg p-4">
                     Select a slot on the left to load battery telemetry and logistics details.
