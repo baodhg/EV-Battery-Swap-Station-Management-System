@@ -60,17 +60,14 @@ type StationInventoryResponse = {
 
 // Fetcher vá»›i authentication token
 const fetcher = async (url: string) => {
-  const token = localStorage.getItem("token")
+  const token = localStorage.getItem("token") || undefined
 
   console.log("Fetching:", url)
   console.log("Token exists:", !!token)
 
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  })
+  const headers: HeadersInit = { "Content-Type": "application/json" }
+  // Public endpoint – DO NOT attach Authorization to avoid 403 from invalid/expired tokens
+  const res = await fetch(url, { headers })
 
   console.log("Response status:", res.status)
 
