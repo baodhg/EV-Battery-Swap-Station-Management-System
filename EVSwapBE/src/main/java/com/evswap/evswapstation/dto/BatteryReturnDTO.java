@@ -2,6 +2,7 @@ package com.evswap.evswapstation.dto;
 
 import lombok.*;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -19,5 +20,5 @@ public class BatteryReturnDTO {
 
     // Thông tin battery (optional)
     private String batteryCode;
-    private Integer batteryCapacity;
+    private BigDecimal batteryCapacity;
 }

@@ -146,7 +146,7 @@ public class BookingController {
             booking.setTimeDate(LocalDateTime.now());
             booking.setStatus("BOOKED");
             booking.setPrice(packageEntity.getPrice());
-            booking.setBatteryId(Long.valueOf(selectedBattery.getBatteryID()));
+            booking.setBatteryId(selectedBattery.getBatteryID());
 
             BookingEntity savedBooking = bookingRepository.save(booking);
             log.info("✅ Booking saved: {}", savedBooking.getBookingId());

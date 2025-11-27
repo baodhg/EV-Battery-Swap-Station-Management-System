@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import org.springframework.security.core.userdetails.UserDetails;
 
 @Service
 public class JwtService {
@@ -32,7 +33,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(user.getUserName()) // luôn đặt subject là username
+                .setSubject(user.getEmail()) // Luôn đặt subject là email để định danh duy nhất
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -68,9 +69,16 @@ public class JwtService {
     }
 
     // Kiểm tra token hợp lệ
-    public boolean isTokenValid(String token, User user) {
+    // userDetails có thể null (ví dụ trong /api/auth/me chỉ cần check token & expiry)
+    public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(user.getUserName()) && !isTokenExpired(token));
+        boolean notExpired = !isTokenExpired(token);
+
+        if (userDetails == null) {
+            return notExpired;
+        }
+
+        return (username.equals(userDetails.getUsername()) && notExpired);
     }
 
     private boolean isTokenExpired(String token) {

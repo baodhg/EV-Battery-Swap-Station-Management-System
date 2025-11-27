@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -13,6 +14,6 @@ public class TransactionBatteryDTO {
     private String userName;
     private String phone;
     private String status;
-    private Integer batteryId;
+    private UUID batteryId;
     private LocalDateTime returnDate;
 }
